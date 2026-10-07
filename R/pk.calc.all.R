@@ -367,6 +367,17 @@ pk.nca.interval <- function(conc, time, volume, duration.conc,
       impute_args$options <- options
       impute_data <- do.call(current_fun_nm, args=impute_args)
     }
+    # Imputation may add rows (e.g. a concentration at the start of the
+    # interval), so realign the per-observation half-life inclusion and
+    # exclusion flags with the imputed data by time.  Imputed rows are neither
+    # included nor excluded.
+    idx_orig <- match(impute_data$time, time)
+    if (!is.null(include_half.life)) {
+      include_half.life <- include_half.life[idx_orig]
+    }
+    if (!is.null(exclude_half.life)) {
+      exclude_half.life <- exclude_half.life[idx_orig]
+    }
     conc <- impute_data$conc
     time <- impute_data$time
   }

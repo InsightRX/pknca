@@ -333,6 +333,41 @@ test_that("half life inclusion and exclusion", {
   expect_false(identical(myresult$result, myresult_incl$result))
 })
 
+test_that("include_half.life and exclude_half.life stay aligned when imputation adds a row", {
+  d_conc <- data.frame(
+    time = c(0.5, 1, 2, 4, 8, 12, 16, 24, 36, 48),
+    conc = c(4.68, 5.46, 5.21, 3.98, 2.42, 1.69, 1.32, 0.95, 0.62, 0.42)
+  )
+  d_conc$include_hl <- ifelse(d_conc$time >= 24, TRUE, NA)
+  d_conc$exclude_hl <- d_conc$time == 48
+  d_dose <- data.frame(time = 0, dose = 100)
+  o_dose <- PKNCAdose(d_dose, dose~time)
+  d_interval <-
+    data.frame(
+      start = 0, end = Inf,
+      half.life = TRUE, lambda.z.time.first = TRUE, lambda.z.n.points = TRUE
+    )
+  get_hl <- function(o_conc, impute) {
+    o_data <- PKNCAdata(o_conc, o_dose, intervals = d_interval, impute = impute)
+    suppressMessages(o_nca <- pk.nca(o_data))
+    as.data.frame(o_nca, out_format = "wide")
+  }
+
+  o_conc_incl <- PKNCAconc(d_conc, conc~time, include_half.life = "include_hl")
+  res_incl_noimpute <- get_hl(o_conc_incl, impute = NA_character_)
+  res_incl_impute <- get_hl(o_conc_incl, impute = "start_conc0")
+  expect_equal(res_incl_impute$lambda.z.time.first, 24)
+  expect_equal(res_incl_impute$lambda.z.n.points, 3)
+  expect_equal(res_incl_impute$half.life, res_incl_noimpute$half.life)
+
+  o_conc_excl <- PKNCAconc(d_conc, conc~time, exclude_half.life = "exclude_hl")
+  res_excl_noimpute <- get_hl(o_conc_excl, impute = NA_character_)
+  res_excl_impute <- get_hl(o_conc_excl, impute = "start_conc0")
+  expect_equal(res_excl_impute$half.life, res_excl_noimpute$half.life)
+  expect_equal(res_excl_impute$lambda.z.time.first, res_excl_noimpute$lambda.z.time.first)
+  expect_equal(res_excl_impute$lambda.z.n.points, res_excl_noimpute$lambda.z.n.points)
+})
+
 test_that("include_half.life and exclude_half.life work with NAs treated as missing for all NA and as FALSE for partial NA (#372)", {
   # Partial NA include_hl is used
   d_conc_incl <- data.frame(conc = c(1, 0.6, 0.3, 0.25, 0.15, 0.1), time = 0:5, include_hl = c(FALSE, NA, TRUE, TRUE, TRUE, TRUE))

@@ -36,6 +36,13 @@ the dosing including dose amount and route.
   be raised. This error can be converted to a warning using the option
   `allow_partial_missing_units = TRUE`. (#398)
 
+## Bugs fixed
+
+* `include_half.life` and `exclude_half.life` are now applied to the intended
+  samples when imputation (e.g. `impute = "start_conc0"`) adds a concentration
+  at the start of the interval.  Previously, the flags were shifted by one
+  sample without warning.
+
 # Minor changes (unlikely to affect PKNCA use)
 
 * PKNCA will now verify the `intervals` data.frame when creating PKNCAdata. The
